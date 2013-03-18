@@ -10,4 +10,4 @@ npm install
 npm test
 
 
-node examples.top.js
+node examples/top.js
