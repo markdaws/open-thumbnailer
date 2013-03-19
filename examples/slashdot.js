@@ -3,8 +3,8 @@ var OT = require('../index');
 var thumbnailer = new OT.Thumbnailer();
 
 thumbnailer.fromUrl(
-    'http://www.clipboard.com', 
-    __dirname + '/slashdot.jpg',
+    'http://slashdot.org', 
+    __dirname + '/thumb/slashdot.org.jpg',
     {
         // only applies to jpgs
         quality: 90,

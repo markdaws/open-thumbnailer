@@ -1,6 +1,8 @@
+//TODO: no tabs
 var childProcess = require('child_process'),
     Gm = require('gm'),
     Fs = require('fs'),
+    UUID = require('node-uuid'),
     Path = require('path'),
     Thumbnail = require('./thumbnail'),
     Utils = require('./utils');
@@ -28,8 +30,8 @@ function createPhantomError(code) {
     }
 }
 
-function processRenderedPage(imagePath, options, originalExtension, callback) {
-    Fs.lstat(imagePath, function(error, stat) {
+function processRenderedPage(options, workingPath, targetPath, callback) {
+    Fs.lstat(workingPath, function(error, stat) {
         if (error) {
             callback(error);
             return;
@@ -44,28 +46,31 @@ function processRenderedPage(imagePath, options, originalExtension, callback) {
             if (installed) {
                 if (options.quality) {
                     // Need to convert to jpg and set correct quality
-                    var originalPath = imagePath;
-                    imagePath = imagePath.replace('.png', originalExtension)
-
-                    Gm(originalPath)
+                    Gm(workingPath)
                         .quality(options.quality)
-                        .write(imagePath, function(error) {
+                        .write(targetPath, function(error) {
                             if (error) {
                                 callback(error);
                                 return;
                             }
 
-                            Fs.unlink(originalPath, function(error) {
+                            Fs.unlink(workingPath, function(error) {
                                 if (error) {
                                     callback(error);
                                     return;
                                 }
-                                fetchInfo(imagePath);
+                                fetchInfo(targetPath);
                             });
                         });
                 }
                 else {
-                    fetchInfo(imagePath);
+					Fs.rename(workingPath, targetPath, function(error) {
+						if (error) {
+							callback(error);
+							return;
+						}
+						fetchInfo(targetPath);
+					});
                 }
 
                 function fetchInfo(imagePath) {
@@ -132,7 +137,8 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
             break;
 
         default:
-            callback({ unsupportedFileType: true, msg: 'Only jpg, jpeg and png supported' });
+            callback({ unsupportedFileType: true, 
+					   msg: 'Only jpg, jpeg and png supported' });
             return;
     }
 
@@ -144,12 +150,14 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
         }
 
         if (extension === '.png' && options.quality) {
-            callback({ badArg: true, msg: 'quality can only be specified with jpg images' });
+            callback({ badArg: true, 
+					   msg: 'quality can only be specified with jpg images' });
             return;
         }
 
         if (options.quality && !gmInstalled) {
-            callback({ unsupported: true, msg: 'Quality can only be specified when graphicsmagick is installed' });
+            callback({ unsupported: true, 
+					   msg: 'Quality can only be specified when graphicsmagick is installed' });
             return;
         }
 
@@ -169,16 +177,20 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
             log = options.log;
         }
 
-        // We always save as png then turn to jpg if needed so we can specify the quality level
-        var originalExtension = extension;
+		// This is the temporary file we use during manipulation.  We always output a png
+		// first, then if necessary we convert it to a jpg so we can control the quality since
+		// phantomjs doesn't let us set a quality level on render
+		var workingPath = Path.join(Path.dirname(outPath), UUID.v4() + '.png');
+
         if (extension !== '.png') {
-            outPath = outPath.replace(extension, '.png');
+			// If this was a jpg then we specify a default quality level
+			options.quality = options.quality || 75;
         }
 
         var args = [ 
             __dirname + '/shim.js', 
             '--url ' + url,
-            '--out ' + outPath,
+            '--out ' + workingPath,
         ];
 
         if (options.crop) {
@@ -223,7 +235,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
                 return;
             }
 
-            processRenderedPage(outPath, options, originalExtension, function(error, thumbnail) {
+            processRenderedPage(options, workingPath, outPath, function(error, thumbnail) {
                 callback(error, thumbnail);
             });
         });

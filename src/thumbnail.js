@@ -1,4 +1,6 @@
-var Fs = require('fs');
+var Fs = require('fs'),
+    Gm = require('gm'),
+    Utils = require('./utils');
 
 /**
 * Represents an individual thumbnail
@@ -35,28 +37,135 @@ Thumbnail.prototype.destroy = function(callback) {
     });
 };
 
-module.exports = Thumbnail;
-
-//TODO:
-/*
-        // helper methods
-        thumbnail.copy('fooboo', function(error, thumbnail) {
-            
-        });
-        
-        thumbnail.copyToS3('key', 'secret', 'bucket', function(error) {
-            
-        });
-
-        thumbnail.move(outPath, function(error) {
-        });
-
-        thumbnail.convert('jpg|png', { quality: 50 }, function(error) {
-        });
-
-        thumbnail.crop(x,y,w,h, function(error) {
-        });
-
-        thumbnail.resize(w,h, function() {
-        });
+/**
+* Creates a copy of the thumbnail
 */
+Thumbnail.prototype.copy = function(outPath, callback) {
+ 	var readStream = Fs.createReadStream(this._info.path),
+    	self = this;
+
+	readStream.on("error", function(error) {
+		callback(error);
+	});
+	var writeStream = Fs.createWriteStream(outPath);
+	writeStream.on("error", function(error) {
+		callback(error);
+	});
+	writeStream.on("close", function() {
+		callback(null, new Thumbnail(
+			self._info.width,
+			self._info.height,
+			outPath,
+			self._info.size
+		));
+	});
+	readStream.pipe(writeStream);
+};
+
+/**
+* Moves the thumbnail to the targetPath
+*/
+Thumbnail.prototype.move = function(targetPath, callback) {
+	var self = this;
+	Fs.rename(this._info.path, targetPath, function(error) {
+		if (error) {
+			callback(error);
+			return;
+		}
+
+		self._info.path = targetPath;
+		callback();
+	});
+};
+
+/**
+* Provides the ability to resize and crop the thumbnail
+*
+* @param {Object} options
+* @param {String} [options.targetPath] Optional, if supplied the original
+* thumbnail will be untouched and a new file will be created. If not specified
+* then the original thumbnail will be modified
+* @param {Number} [options.scaleToWidth] 
+* @param {Number} [options.scaleToHeight] 
+*/
+Thumbnail.prototype.resize = function(options, callback) {
+
+	var self = this;
+	Utils.gmInstalled(function(error, installed) {
+		if (error) {
+			callback(error);
+			return;
+		}
+
+		if (!installed) {
+			callback({ unsupported: true, msg: 'graphicsmagick is not installed' });
+			return;
+		}
+
+		if (options.targetPath) {
+			self.copy(options.targetPath, function(error, thumbCopy) {
+				if (error) {
+					callback(error);
+					return;
+				}
+
+				_resize(thumbCopy);
+			});
+		}
+		else {
+			_resize(self);
+		}
+
+		function _resize(thumbnail) {
+			var targetWidth, targetHeight, cropRegion;
+
+			if (options.scaleToWidth) {
+				targetWidth = options.scaleToWidth;
+				targetHeight = options.scaleToWidth / thumbnail.getInfo().width * 
+					thumbnail.getInfo().height;
+			}
+			else if (options.scaleToHeight) {
+				targetHeight = options.scaleToHeight;
+				targetWidth = options.scaleToHeight / thumbnail.getInfo().height +
+					thumbnail.getInfo().width;
+			}
+
+			if (options.crop) {
+				cropRegion = options.crop;
+			}
+			else {
+				cropRegion = { top: 0, left: 0, width: targetWidth, height: targetHeight };
+			}
+
+			executeGm(targetWidth, targetHeight, cropRegion);
+
+			function executeGm(targetWidth, targetHeight, crop) {
+				Gm(thumbnail.getInfo().path)
+					.resize(targetWidth, targetHeight)
+				    .crop(crop.width, crop.height, crop.left, crop.top)
+					.write(thumbnail.getInfo().path, function(error) {
+						if (error) {
+							callback(error);
+							return;
+						}
+						
+						Fs.lstat(thumbnail.getInfo().path, function(error, stats) {
+							if (error) {
+								callback(error);
+								return;
+							}
+							
+							callback(null, new Thumbnail(
+								targetWidth,
+								targetHeight,
+								thumbnail.getInfo().path,
+								stats.size
+							));
+						});
+					});
+			}
+		}
+	});
+};
+
+module.exports = Thumbnail;
