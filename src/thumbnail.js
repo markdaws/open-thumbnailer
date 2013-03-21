@@ -10,12 +10,7 @@ var Fs = require('fs'),
 * @param {Number} size The size of the thumbnail in bytes
 */
 function Thumbnail(width, height, path, size) {
-    this._info = {
-        width: width,
-        height: height,
-        path: path,
-        size: size
-    };
+    this._setInfo(width, height, path, size);
 }
 
 /**
@@ -25,6 +20,15 @@ function Thumbnail(width, height, path, size) {
 */
 Thumbnail.prototype.getInfo = function() {
     return this._info;
+};
+
+Thumbnail.prototype._setInfo = function(width, height, path, size) {
+    this._info = {
+        width: width,
+        height: height,
+        path: path,
+        size: size
+    };
 };
 
 /**
@@ -41,41 +45,41 @@ Thumbnail.prototype.destroy = function(callback) {
 * Creates a copy of the thumbnail
 */
 Thumbnail.prototype.copy = function(outPath, callback) {
- 	var readStream = Fs.createReadStream(this._info.path),
-    	self = this;
+    var readStream = Fs.createReadStream(this._info.path),
+        self = this;
 
-	readStream.on("error", function(error) {
-		callback(error);
-	});
-	var writeStream = Fs.createWriteStream(outPath);
-	writeStream.on("error", function(error) {
-		callback(error);
-	});
-	writeStream.on("close", function() {
-		callback(null, new Thumbnail(
-			self._info.width,
-			self._info.height,
-			outPath,
-			self._info.size
-		));
-	});
-	readStream.pipe(writeStream);
+    readStream.on("error", function(error) {
+        callback(error);
+    });
+    var writeStream = Fs.createWriteStream(outPath);
+    writeStream.on("error", function(error) {
+        callback(error);
+    });
+    writeStream.on("close", function() {
+        callback(null, new Thumbnail(
+            self._info.width,
+            self._info.height,
+            outPath,
+            self._info.size
+        ));
+    });
+    readStream.pipe(writeStream);
 };
 
 /**
 * Moves the thumbnail to the targetPath
 */
 Thumbnail.prototype.move = function(targetPath, callback) {
-	var self = this;
-	Fs.rename(this._info.path, targetPath, function(error) {
-		if (error) {
-			callback(error);
-			return;
-		}
+    var self = this;
+    Fs.rename(this._info.path, targetPath, function(error) {
+        if (error) {
+            callback(error);
+            return;
+        }
 
-		self._info.path = targetPath;
-		callback();
-	});
+        self._info.path = targetPath;
+        callback();
+    });
 };
 
 /**
@@ -90,82 +94,90 @@ Thumbnail.prototype.move = function(targetPath, callback) {
 */
 Thumbnail.prototype.resize = function(options, callback) {
 
-	var self = this;
-	Utils.gmInstalled(function(error, installed) {
-		if (error) {
-			callback(error);
-			return;
-		}
+    var self = this;
+    Utils.gmInstalled(function(error, installed) {
+        if (error) {
+            callback(error);
+            return;
+        }
 
-		if (!installed) {
-			callback({ unsupported: true, msg: 'graphicsmagick is not installed' });
-			return;
-		}
+        if (!installed) {
+            callback({ unsupported: true, msg: 'graphicsmagick is not installed' });
+            return;
+        }
 
-		if (options.targetPath) {
-			self.copy(options.targetPath, function(error, thumbCopy) {
-				if (error) {
-					callback(error);
-					return;
-				}
+        if (options.targetPath) {
+            self.copy(options.targetPath, function(error, thumbCopy) {
+                if (error) {
+                    callback(error);
+                    return;
+                }
 
-				_resize(thumbCopy);
-			});
-		}
-		else {
-			_resize(self);
-		}
+                _resize(thumbCopy, false);
+            });
+        }
+        else {
+            _resize(self, true);
+        }
 
-		function _resize(thumbnail) {
-			var targetWidth, targetHeight, cropRegion;
+        function _resize(thumbnail, overrideThumb) {
+            var targetWidth, targetHeight, cropRegion;
 
-			if (options.scaleToWidth) {
-				targetWidth = options.scaleToWidth;
-				targetHeight = options.scaleToWidth / thumbnail.getInfo().width * 
-					thumbnail.getInfo().height;
-			}
-			else if (options.scaleToHeight) {
-				targetHeight = options.scaleToHeight;
-				targetWidth = options.scaleToHeight / thumbnail.getInfo().height +
-					thumbnail.getInfo().width;
-			}
+            if (options.scaleToWidth) {
+                targetWidth = options.scaleToWidth;
+                targetHeight = options.scaleToWidth / thumbnail.getInfo().width * 
+                    thumbnail.getInfo().height;
+            }
+            else if (options.scaleToHeight) {
+                targetHeight = options.scaleToHeight;
+                targetWidth = options.scaleToHeight / thumbnail.getInfo().height +
+                    thumbnail.getInfo().width;
+            }
 
-			if (options.crop) {
-				cropRegion = options.crop;
-			}
-			else {
-				cropRegion = { top: 0, left: 0, width: targetWidth, height: targetHeight };
-			}
+            if (options.crop) {
+                cropRegion = options.crop;
+            }
+            else {
+                cropRegion = { top: 0, left: 0, width: targetWidth, height: targetHeight };
+            }
 
-			executeGm(targetWidth, targetHeight, cropRegion);
+            executeGm(targetWidth, targetHeight, cropRegion);
 
-			function executeGm(targetWidth, targetHeight, crop) {
-				Gm(thumbnail.getInfo().path)
-					.resize(targetWidth, targetHeight)
-				    .crop(crop.width, crop.height, crop.left, crop.top)
-					.write(thumbnail.getInfo().path, function(error) {
-						if (error) {
-							callback(error);
-							return;
-						}
-						
-						Fs.lstat(thumbnail.getInfo().path, function(error, stats) {
-							if (error) {
-								callback(error);
-								return;
-							}
-							
-							callback(null, new Thumbnail(
-								targetWidth,
-								targetHeight,
-								thumbnail.getInfo().path,
-								stats.size
-							));
-						});
-					});
-			}
-		}
-	});
+            function executeGm(targetWidth, targetHeight, crop) {
+                Gm(thumbnail.getInfo().path)
+                    .resize(targetWidth, targetHeight)
+                    .crop(crop.width, crop.height, crop.left, crop.top)
+                    .write(thumbnail.getInfo().path, function(error) {
+                        if (error) {
+                            callback(error);
+                            return;
+                        }
+                        
+                        Fs.lstat(thumbnail.getInfo().path, function(error, stats) {
+                            if (error) {
+                                callback(error);
+                                return;
+                            }
+                            
+                            if (overrideThumb) {
+                                thumbnail._setInfo(
+                                    width, height, thumbnail.getInfo().path, stats.size
+                                );
+                                callback();
+                            }
+                            else {
+                                callback(null, new Thumbnail(
+                                    targetWidth,
+                                    targetHeight,
+                                    thumbnail.getInfo().path,
+                                    stats.size
+                                ));
+                            }
+                        });
+                    });
+            }
+        }
+    });
 };
 
 module.exports = Thumbnail;

@@ -64,13 +64,13 @@ function processRenderedPage(options, workingPath, targetPath, callback) {
                         });
                 }
                 else {
-					Fs.rename(workingPath, targetPath, function(error) {
-						if (error) {
-							callback(error);
-							return;
-						}
-						fetchInfo(targetPath);
-					});
+                    Fs.rename(workingPath, targetPath, function(error) {
+                        if (error) {
+                            callback(error);
+                            return;
+                        }
+                        fetchInfo(targetPath);
+                    });
                 }
 
                 function fetchInfo(imagePath) {
@@ -138,7 +138,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
 
         default:
             callback({ unsupportedFileType: true, 
-					   msg: 'Only jpg, jpeg and png supported' });
+                       msg: 'Only jpg, jpeg and png supported' });
             return;
     }
 
@@ -151,13 +151,13 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
 
         if (extension === '.png' && options.quality) {
             callback({ badArg: true, 
-					   msg: 'quality can only be specified with jpg images' });
+                       msg: 'quality can only be specified with jpg images' });
             return;
         }
 
         if (options.quality && !gmInstalled) {
             callback({ unsupported: true, 
-					   msg: 'Quality can only be specified when graphicsmagick is installed' });
+                       msg: 'Quality can only be specified when graphicsmagick is installed' });
             return;
         }
 
@@ -177,14 +177,14 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
             log = options.log;
         }
 
-		// This is the temporary file we use during manipulation.  We always output a png
-		// first, then if necessary we convert it to a jpg so we can control the quality since
-		// phantomjs doesn't let us set a quality level on render
-		var workingPath = Path.join(Path.dirname(outPath), UUID.v4() + '.png');
+        // This is the temporary file we use during manipulation.  We always output a png
+        // first, then if necessary we convert it to a jpg so we can control the quality since
+        // phantomjs doesn't let us set a quality level on render
+        var workingPath = Path.join(Path.dirname(outPath), UUID.v4() + '.png');
 
         if (extension !== '.png') {
-			// If this was a jpg then we specify a default quality level
-			options.quality = options.quality || 75;
+            // If this was a jpg then we specify a default quality level
+            options.quality = options.quality || 75;
         }
 
         var args = [ 

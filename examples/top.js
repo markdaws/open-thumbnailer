@@ -3,7 +3,7 @@ var OT = require('../index'),
 
 // Some popular sites
 var sites = [
-	'clipboard.com',
+    'clipboard.com',
     'google.com',
     'facebook.com',
     'youtube.com',
@@ -41,7 +41,7 @@ var sites = [
 
 async.forEachLimit(
     sites,
-    5,
+    2,
     function(site, callback) {
         var thumbnailer = new OT.Thumbnailer();
 
@@ -79,42 +79,42 @@ async.forEachLimit(
                 console.log(site);
                 if (error) {
                     console.error('FAILED: ' + JSON.stringify(error));
-					callback();
-					return;
+                    callback();
+                    return;
                 }
 
                 // Show details about the thumbnail
                 console.dir(thumbnail.getInfo());
 
-				// Make a small version of the thumbnail as well
-				thumbnail.resize(
-					{
-						targetPath: __dirname + '/thumbs/' + site + '.small.jpg',
+                // Make a small version of the thumbnail as well
+                thumbnail.resize(
+                    {
+                        targetPath: __dirname + '/thumbs/' + site + '.small.jpg',
 
-						// Will fit the thumb to 400 pixels, maintaining
-						// the aspect ratio
-						scaleToWidth: 400,
+                        // Will fit the thumb to 400 pixels, maintaining
+                        // the aspect ratio
+                        scaleToWidth: 400,
 
-						// Crop applies after the scale so this will crop to a max
-						// of 400 pixels wide and tall.  If either dimension of the
-						// thumb is smaller it will not be cropped
-						crop: {
-							top: 0,
-							left: 0,
-							width: 400,
-							height: 400
-						}
-					},
-					function(error, smallThumb) {
-						if (error) {
-							console.dir(error);
-							callback();
-							return;
-						}
+                        // Crop applies after the scale so this will crop to a max
+                        // of 400 pixels wide and tall.  If either dimension of the
+                        // thumb is smaller it will not be cropped
+                        crop: {
+                            top: 0,
+                            left: 0,
+                            width: 400,
+                            height: 400
+                        }
+                    },
+                    function(error, smallThumb) {
+                        if (error) {
+                            console.dir(error);
+                            callback();
+                            return;
+                        }
 
-						callback();
-					}
-				);
+                        callback();
+                    }
+                );
             }
         );      
     },
