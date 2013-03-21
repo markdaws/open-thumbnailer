@@ -54,6 +54,11 @@ thumbnailer.fromUrl(
 );
 ```
 
+At any point you can cancel an in progress thumbnail
+```
+thumbnailer.cancel();
+```
+
 There are various options you can specify to the thumbnailer when creating a thumb:
 ```javascript
 var OT = require('open-thumbnailer'),
