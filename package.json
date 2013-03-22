@@ -1,6 +1,6 @@
 {
   "name": "open-thumbnailer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An open source thumbnailer framework",
   "main": "src/index.js",
   "scripts": {
@@ -19,7 +19,8 @@
   "dependencies": {
     "gm": "1.8.2",
     "phantomjs": "1.8.2-0",
-	"node-uuid": "1.4.0"
+	"node-uuid": "1.4.0",
+    "shelljs": "0.1.2"o
   },
   "devDependencies": {
     "mocha": "1.8.2",

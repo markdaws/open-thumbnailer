@@ -90,12 +90,18 @@ function processRenderedPage(options, workingPath, targetPath, callback) {
                 }
             }
             else {
-                callback(null, new Thumbnail(
-                    null,
-                    null,
-                    imagePath,
-                    stat.size
-                ));
+                Fs.rename(workingPath, targetPath, function(error) {
+                    if (error) {
+                        callback(error);
+                        return;
+                    }
+                    callback(null, new Thumbnail(
+                        null,
+                        null,
+                        targetPath,
+                        stat.size
+                    ));
+                });
             }
         });
     });
@@ -171,7 +177,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
             };
             log.verbose = function(message) {
                 console.log('OT-VERBOSE: ' + message);
-            }
+            };
         }
         else {
             log = options.log;
@@ -190,7 +196,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
         var args = [ 
             __dirname + '/shim.js', 
             '--url ' + url,
-            '--out ' + workingPath,
+            '--out ' + workingPath
         ];
 
         if (options.crop) {

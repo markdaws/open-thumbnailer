@@ -159,16 +159,20 @@ Thumbnail.prototype.resize = function(options, callback) {
                                 return;
                             }
                             
+                            var finalWidth = Math.min(crop.width, targetWidth),
+                                finalHeight = Math.min(crop.height, targetHeight);
+                            
                             if (overrideThumb) {
                                 thumbnail._setInfo(
-                                    width, height, thumbnail.getInfo().path, stats.size
+                                    finalWidth, finalHeight, 
+                                    thumbnail.getInfo().path, stats.size
                                 );
                                 callback();
                             }
                             else {
                                 callback(null, new Thumbnail(
-                                    targetWidth,
-                                    targetHeight,
+                                    Math.min(crop.width, targetWidth),
+                                    Math.min(crop.height, targetHeight),
                                     thumbnail.getInfo().path,
                                     stats.size
                                 ));
