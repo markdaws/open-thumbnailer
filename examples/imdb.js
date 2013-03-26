@@ -3,7 +3,7 @@ var OT = require('../index');
 var thumbnailer = new OT.Thumbnailer();
 
 thumbnailer.fromUrl(
-    'http://www.google.com', 
+    'http://www.imdb.com', 
     __dirname + '/thumbs/imdb.com.jpg',
     function(error, thumbnail) {
 

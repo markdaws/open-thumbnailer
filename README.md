@@ -66,37 +66,43 @@ var OT = require('open-thumbnailer'),
 
 thumbnailer.fromUrl(
     'http://www.imdb.com',
-    
+
     // To save as a PNG, simply change the file extension to PNG
     __dirname + '/imdb.com.jpg',
     {
       // A number between 0 and 100 that specifies the quality of the jpg thumb.
       // Only applies if you are creating jpgs, not pngs
       quality: 75,
-      
+
+      // If you don't specify an extension on the output path, then you must specify
+      // the format here, if you don't want the default of jpg.  Can be jpg, jpeg or png.
+      // This value will be ignored if the output path has an extension already set on
+      // it of png | jpg | jpeg
+      format: 'jpg',
+
       // Can be true, which will use a simple internal console.log method
       // to log status, or you can provide your own log object e.g.
       log: {
         verbose: function(message) { console.log(message); },
         error: function(message, error) { console.error(JSON.stringify(error))}
       },
-      
+
       // The amount of time to wait before cancelling the thumbnail.  If a page
       // is taking a long time to load you may want to cancel
       timeout: 60,
-      
+
       // The amount of time (in seconds) to wait after the page loads before actually
       // trying to render the page.  There may be cases where the page loads content
       // asyncronously and if you render straight away on load the page may not have
       // all the content.
       delay: 10,
-      
+
       // The size of the window when the page is loaded.  This is not a crop size it
       // is the size of the browser window to use when loading the content.  Content loaded
       // outside of these values will still be rendered in the final thumb.  If you want
       // to crop then use the crop value as specified below
       viewport: { width: 1024, height: 768 },
-      
+
       // The part of the page to render. The interesting part here is cropToPage, if this
       // is false then if the rendered webpage is smaller than the crop region the thumbnail
       // will still be as big as the crop region with pixels filled in black, however if you
@@ -153,22 +159,22 @@ thumb.resize(
     // scales the thumbnail to 400 pixels wide, the aspect ratio of the clip
     // will be maintained
     scaleToWidth: 400,
-    
+
     // scales the thumbnail to 600 pixels tall.  Only specify one of scaleToWidth
     // and scaleToHeight, if both are specified the behaviour is unspecified
     scaleToHeight: 600,
-    
-    // Optional - if not specified the thumb will be resized and the original 
+
+    // Optional - if not specified the thumb will be resized and the original
     // thumb variable points to the resized thumb.  If you specify a targetPath
     // then a copy of the thumb is made and resized and the copied thumb is
     // returned in the callback
     targetPath: 'some-new-file.jpg',
-    
+
     // crops the thumbnail AFTER it has been resized, so for example if you set
     // scaleToWidth to 400 and wanted a square thumbnail, you could then crop the
     // height to 400 pixels here to make the output square
     crop: { top:0, left: 0, width: 400, height: 400 }
-    
+
   },
   function(error, resizedThumb) {
     // NOTE: resizedThumb will be null if you did not specify a targetpath

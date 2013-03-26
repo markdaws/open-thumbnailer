@@ -1,4 +1,3 @@
-//TODO: no tabs
 var childProcess = require('child_process'),
     Gm = require('gm'),
     Fs = require('fs'),
@@ -30,7 +29,7 @@ function createPhantomError(code) {
     }
 }
 
-function processRenderedPage(options, workingPath, targetPath, callback) {
+function processRenderedPage(options, workingPath, targetPath, format, callback) {
     Fs.lstat(workingPath, function(error, stat) {
         if (error) {
             callback(error);
@@ -48,6 +47,7 @@ function processRenderedPage(options, workingPath, targetPath, callback) {
                     // Need to convert to jpg and set correct quality
                     Gm(workingPath)
                         .quality(options.quality)
+                        .setFormat('jpg')
                         .write(targetPath, function(error) {
                             if (error) {
                                 callback(error);
@@ -64,6 +64,8 @@ function processRenderedPage(options, workingPath, targetPath, callback) {
                         });
                 }
                 else {
+                    // Since we always thumbnail as a png, and the output format
+                    // is a png, then we can just save the file
                     Fs.rename(workingPath, targetPath, function(error) {
                         if (error) {
                             callback(error);
@@ -135,17 +137,33 @@ Thumbnailer.prototype.fromUrl = function(url, outPath, options, callback) {
 };
 
 Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, callback) {
-    var extension = Path.extname(outPath).toLowerCase();
-    switch(extension) {
-        case '.jpg':
-        case '.jpeg':
-        case '.png':
+    var format = Path.extname(outPath).toLowerCase().replace('.', '');
+    switch(format) {
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
             break;
 
         default:
-            callback({ unsupportedFileType: true, 
-                       msg: 'Only jpg, jpeg and png supported' });
-            return;
+            if (options.format) {
+                format = (options.format || 'jpg').toLowerCase();
+                switch(format) {
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                    break;
+                    
+                default:
+                    callback({ badArg: true,
+                               msg: 'format must be one of jpg, jpeg or png' });
+                    return;
+                }
+            }
+            else {
+                callback({ unsupportedFileType: true, 
+                           msg: 'Only .jpg, .jpeg and .png supported' });
+                return;
+            }
     }
 
     var self = this;
@@ -155,7 +173,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
             return;
         }
 
-        if (extension === '.png' && options.quality) {
+        if (format === 'png' && options.quality) {
             callback({ badArg: true, 
                        msg: 'quality can only be specified with jpg images' });
             return;
@@ -188,7 +206,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
         // phantomjs doesn't let us set a quality level on render
         var workingPath = Path.join(Path.dirname(outPath), UUID.v4() + '.png');
 
-        if (extension !== '.png') {
+        if (format !== 'png') {
             // If this was a jpg then we specify a default quality level
             options.quality = options.quality || 75;
         }
@@ -203,6 +221,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
             args.push('--crop ' + 
                       (options.crop.top || 0) + 'x' +
                       (options.crop.left || 0) + 'x' +
+                      
                       //??? have to specify, 
                       options.crop.width + 'x' +
                       options.crop.height + 'x' +
@@ -241,7 +260,7 @@ Thumbnailer.prototype._parseOptionsAndRender = function(outPath, url, options, c
                 return;
             }
 
-            processRenderedPage(options, workingPath, outPath, function(error, thumbnail) {
+            processRenderedPage(options, workingPath, outPath, format, function(error, thumbnail) {
                 callback(error, thumbnail);
             });
         });
